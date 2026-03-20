@@ -14,9 +14,9 @@
 </p>
 
 <p align="center">
-  Built on <a href="https://github.com/anthropics/openshell"><strong>OpenShell</strong></a> — the open-source secure sandboxing runtime by Anthropic.<br/>
+  Built on <a href="https://github.com/NVIDIA/OpenShell"><strong>NVIDIA OpenShell</strong></a> — the safe, private runtime for autonomous AI agents.<br/>
   A hardware-agnostic OpenClaw agent orchestration CLI and drop-in replacement for NemoClaw<br/>
-  that removes the NVIDIA hardware dependency while preserving OpenShell's security isolation.
+  that preserves OpenShell's sandboxing and policy controls without requiring NVIDIA GPU hardware.
 </p>
 
 > **Note:** This project is under active development and not yet production-ready. APIs and commands may change.
@@ -25,7 +25,7 @@
 
 ## Why OpenShell?
 
-[OpenShell](https://github.com/anthropics/openshell) is Anthropic's open-source runtime for running AI agents inside secure, isolated sandboxes with Landlock filesystem restrictions and OPA-based network egress policies. ShellClaw leverages OpenShell as its sandboxing layer, adding a CLI-driven control plane for lifecycle management, dynamic inference routing, and seamless credential injection — all without requiring NVIDIA hardware.
+[OpenShell](https://github.com/NVIDIA/OpenShell) is NVIDIA's safe, private runtime for autonomous AI agents. It provides sandboxed execution environments that protect data, credentials, and infrastructure with declarative policies for filesystem access, network egress, and inference routing. ShellClaw builds on OpenShell as its sandboxing layer, adding a CLI-driven control plane for OpenClaw lifecycle management, migration, dynamic inference routing, and credential injection without making NVIDIA GPUs a deployment requirement.
 
 ## Installation
 
@@ -33,7 +33,15 @@
 
 - Python 3.10+
 - [Docker](https://docs.docker.com/get-docker/) (for sandbox containers)
-- [OpenShell](https://github.com/anthropics/openshell) runtime installed
+- [OpenShell](https://github.com/NVIDIA/OpenShell) runtime installed
+
+Install OpenShell first using NVIDIA's quickstart:
+
+```shell
+curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh
+# or
+uv tool install -U openshell
+```
 
 ### Quick install
 
