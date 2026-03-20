@@ -14,13 +14,16 @@ class InferenceConfig:
     version: str = ""
 
 
-def set_inference(provider: str, model: str) -> bool:
+def set_inference(provider: str, model: str, *, verify: bool = True) -> bool:
     try:
-        run_openshell([
+        args = [
             "inference", "set",
             "--provider", provider,
             "--model", model,
-        ])
+        ]
+        if not verify:
+            args.append("--no-verify")
+        run_openshell(args)
         return True
     except subprocess.CalledProcessError:
         return False

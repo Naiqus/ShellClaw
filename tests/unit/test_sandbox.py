@@ -53,9 +53,9 @@ class TestCreateSandbox:
 
         create_sandbox("my-sandbox", policy_path=sample_policy)
 
-        # Policy is passed inline with --policy, single call
-        mock_run_openshell.assert_called_once()
-        args = mock_run_openshell.call_args[0][0]
+        # First call is list_sandboxes, second is the create
+        create_call = mock_run_openshell.call_args_list[-1]
+        args = create_call[0][0]
         assert "--policy" in args
         assert str(sample_policy) in args
 

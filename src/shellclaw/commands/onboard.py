@@ -71,7 +71,7 @@ def onboard(
 
     # Step 4: Configure inference routing
     log_step(4, total, "Configuring inference routing...")
-    if not set_inference(inference_provider, inference_model):
+    if not set_inference(inference_provider, inference_model, verify=False):
         log_error("Failed to configure inference routing")
         raise typer.Exit(1)
     log_success(f"Inference routed to {inference_provider}/{inference_model}")

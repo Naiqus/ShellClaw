@@ -18,6 +18,9 @@ class SandboxStatus:
 
 
 def create_sandbox(name: str, policy_path: Path | None = None) -> bool:
+    existing = {s.name for s in list_sandboxes()}
+    if name in existing:
+        return True
     try:
         args = [
             "sandbox", "create",

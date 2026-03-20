@@ -45,6 +45,22 @@ class TestSetInference:
         assert result is True
         mock_run_openshell.assert_called_once()
 
+    def test_passes_no_verify_flag(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.inference import set_inference
+
+        set_inference("ollama", "llama3", verify=False)
+
+        args = mock_run_openshell.call_args[0][0]
+        assert "--no-verify" in args
+
+    def test_omits_no_verify_by_default(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.inference import set_inference
+
+        set_inference("ollama", "llama3")
+
+        args = mock_run_openshell.call_args[0][0]
+        assert "--no-verify" not in args
+
     def test_returns_false_on_failure(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.inference import set_inference
 
