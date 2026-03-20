@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from shellclaw.core.gateway import _strip_ansi
 from shellclaw.core.shell import run_openshell
+
+_TABLE_HEADER_RE = re.compile(r"^NAME\s+", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -15,29 +19,24 @@ class SandboxStatus:
 
 def create_sandbox(name: str, policy_path: Path | None = None) -> bool:
     try:
-        run_openshell([
+        args = [
             "sandbox", "create",
             "--from", "openclaw",
             "--name", name,
-        ])
+        ]
         if policy_path is not None:
-            run_openshell(["policy", "set", str(policy_path), "--sandbox", name])
+            args.extend(["--policy", str(policy_path)])
+        # Pass "-- true" to avoid dropping into an interactive shell
+        args.extend(["--", "true"])
+        run_openshell(args)
         return True
     except subprocess.CalledProcessError:
         return False
 
 
-def start_sandbox(name: str) -> bool:
+def delete_sandbox(name: str) -> bool:
     try:
-        run_openshell(["sandbox", "start", name])
-        return True
-    except subprocess.CalledProcessError:
-        return False
-
-
-def stop_sandbox(name: str) -> bool:
-    try:
-        run_openshell(["sandbox", "stop", name])
+        run_openshell(["sandbox", "delete", name])
         return True
     except subprocess.CalledProcessError:
         return False
@@ -63,7 +62,7 @@ def upload_to_sandbox(name: str, local_path: Path, remote_path: str) -> bool:
 
 def exec_in_sandbox(name: str, command: str) -> subprocess.CompletedProcess[str]:
     return run_openshell(
-        ["sandbox", "exec", name, "--", command],
+        ["sandbox", "connect", name, "--", command],
         check=False,
     )
 
@@ -73,7 +72,13 @@ def list_sandboxes() -> list[SandboxStatus]:
         result = run_openshell(["sandbox", "list"], check=True)
         sandboxes: list[SandboxStatus] = []
         for line in result.stdout.strip().splitlines():
-            parts = line.split()
+            clean = _strip_ansi(line).strip()
+            if not clean:
+                continue
+            # Skip "No sandboxes" messages and table headers
+            if clean.lower().startswith("no sandbox") or _TABLE_HEADER_RE.match(clean):
+                continue
+            parts = clean.split()
             if len(parts) >= 2:
                 sandboxes.append(SandboxStatus(name=parts[0], state=parts[1]))
         return sandboxes

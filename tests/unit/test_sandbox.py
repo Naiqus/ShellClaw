@@ -46,15 +46,18 @@ class TestCreateSandbox:
         assert "--name" in args
         assert "my-sandbox" in args
 
-    def test_applies_policy_when_provided(
+    def test_includes_policy_in_create_command(
         self, mock_run_openshell: MagicMock, sample_policy: Path
     ) -> None:
         from shellclaw.core.sandbox import create_sandbox
 
         create_sandbox("my-sandbox", policy_path=sample_policy)
 
-        # Should make two calls: create + policy set
-        assert mock_run_openshell.call_count == 2
+        # Policy is passed inline with --policy, single call
+        mock_run_openshell.assert_called_once()
+        args = mock_run_openshell.call_args[0][0]
+        assert "--policy" in args
+        assert str(sample_policy) in args
 
     def test_returns_false_on_failure(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.sandbox import create_sandbox
@@ -65,32 +68,21 @@ class TestCreateSandbox:
         assert result is False
 
 
-class TestStartSandbox:
-    def test_calls_sandbox_start(self, mock_run_openshell: MagicMock) -> None:
-        from shellclaw.core.sandbox import start_sandbox
+class TestDeleteSandbox:
+    def test_calls_sandbox_delete(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.sandbox import delete_sandbox
 
-        result = start_sandbox("my-sandbox")
+        result = delete_sandbox("my-sandbox")
 
         assert result is True
         args = mock_run_openshell.call_args[0][0]
-        assert args == ["sandbox", "start", "my-sandbox"]
+        assert args == ["sandbox", "delete", "my-sandbox"]
 
     def test_returns_false_on_failure(self, mock_run_openshell: MagicMock) -> None:
-        from shellclaw.core.sandbox import start_sandbox
+        from shellclaw.core.sandbox import delete_sandbox
 
         mock_run_openshell.side_effect = subprocess.CalledProcessError(1, "openshell")
-        assert start_sandbox("test") is False
-
-
-class TestStopSandbox:
-    def test_calls_sandbox_stop(self, mock_run_openshell: MagicMock) -> None:
-        from shellclaw.core.sandbox import stop_sandbox
-
-        result = stop_sandbox("my-sandbox")
-
-        assert result is True
-        args = mock_run_openshell.call_args[0][0]
-        assert args == ["sandbox", "stop", "my-sandbox"]
+        assert delete_sandbox("test") is False
 
 
 class TestUploadToSandbox:
@@ -108,15 +100,16 @@ class TestUploadToSandbox:
 
 
 class TestExecInSandbox:
-    def test_calls_sandbox_exec(self, mock_run_openshell: MagicMock) -> None:
+    def test_calls_sandbox_connect_with_command(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.sandbox import exec_in_sandbox
 
         result = exec_in_sandbox("my-sandbox", "openclaw doctor")
 
         assert result.returncode == 0
         args = mock_run_openshell.call_args[0][0]
-        assert "exec" in args
+        assert "connect" in args
         assert "my-sandbox" in args
+        assert "--" in args
 
 
 class TestListSandboxes:
@@ -131,3 +124,39 @@ class TestListSandboxes:
 
         result = list_sandboxes()
         assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0].name == "my-sandbox"
+        assert result[0].state == "running"
+
+    def test_returns_empty_for_no_sandboxes_message(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.sandbox import list_sandboxes
+
+        mock_run_openshell.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout="No sandboxes found.\n",
+            stderr=""
+        )
+
+        result = list_sandboxes()
+        assert result == []
+
+    def test_returns_empty_on_failure(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.sandbox import list_sandboxes
+
+        mock_run_openshell.side_effect = subprocess.CalledProcessError(1, "openshell")
+
+        result = list_sandboxes()
+        assert result == []
+
+    def test_skips_table_header(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.sandbox import list_sandboxes
+
+        mock_run_openshell.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout="NAME    STATE\nmy-sandbox  running\n",
+            stderr=""
+        )
+
+        result = list_sandboxes()
+        assert len(result) == 1
+        assert result[0].name == "my-sandbox"

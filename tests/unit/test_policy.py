@@ -22,8 +22,8 @@ class TestLoadPolicy:
 
         policy = load_policy(sample_policy)
         assert isinstance(policy, dict)
-        assert "filesystem" in policy
-        assert "network" in policy
+        assert "filesystem_policy" in policy
+        assert "network_policies" in policy
 
     def test_raises_on_nonexistent_file(self) -> None:
         from shellclaw.core.policy import load_policy
@@ -46,24 +46,24 @@ class TestValidatePolicy:
         from shellclaw.core.policy import validate_policy
 
         policy = {
-            "filesystem": [{"path": "/sandbox", "permission": "read_write"}],
-            "network": [{"endpoint": "inference.local", "action": "allow"}],
+            "filesystem_policy": {"read_write": ["/sandbox"]},
+            "network_policies": {"inference": {"endpoints": [{"host": "inference.local"}]}},
         }
 
         errors = validate_policy(policy)
         assert errors == []
 
-    def test_missing_filesystem_section(self) -> None:
+    def test_missing_filesystem_policy_section(self) -> None:
         from shellclaw.core.policy import validate_policy
 
-        errors = validate_policy({"network": []})
-        assert any("filesystem" in e for e in errors)
+        errors = validate_policy({"network_policies": {}})
+        assert any("filesystem_policy" in e for e in errors)
 
-    def test_missing_network_section(self) -> None:
+    def test_missing_network_policies_section(self) -> None:
         from shellclaw.core.policy import validate_policy
 
-        errors = validate_policy({"filesystem": []})
-        assert any("network" in e for e in errors)
+        errors = validate_policy({"filesystem_policy": {}})
+        assert any("network_policies" in e for e in errors)
 
     def test_empty_dict_returns_errors(self) -> None:
         from shellclaw.core.policy import validate_policy
@@ -84,6 +84,9 @@ class TestApplyPolicy:
         args = mock_run_openshell.call_args[0][0]
         assert "policy" in args
         assert "set" in args
+        assert "my-sandbox" in args
+        assert "--policy" in args
+        assert str(sample_policy) in args
 
     def test_returns_false_on_failure(
         self, mock_run_openshell: MagicMock, sample_policy: Path

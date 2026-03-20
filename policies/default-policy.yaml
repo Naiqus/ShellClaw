@@ -1,29 +1,24 @@
-filesystem:
-  - path: /usr
-    permission: read_only
-  - path: /lib
-    permission: read_only
-  - path: /etc
-    permission: read_only
-  - path: /sandbox
-    permission: read_write
-  - path: /tmp
-    permission: read_write
+version: 1
 
-network:
-  default_action: deny
+filesystem_policy:
+  read_only:
+    - /usr
+    - /lib
+    - /etc
+  read_write:
+    - /sandbox
+    - /tmp
 
-  rules:
-    - endpoint: inference.local
-      action: allow
-      protocol: any
-
-    - endpoint: github.com
-      action: allow
-      protocol: rest
-      tls: terminate
-
-    - endpoint: "*.npmjs.org"
-      action: allow
-      protocol: rest
-      tls: terminate
+network_policies:
+  inference:
+    endpoints:
+      - host: inference.local
+        access: allow
+  github:
+    endpoints:
+      - host: github.com
+        access: allow
+  npm:
+    endpoints:
+      - host: "*.npmjs.org"
+        access: allow

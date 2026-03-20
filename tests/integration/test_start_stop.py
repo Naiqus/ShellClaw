@@ -9,18 +9,18 @@ runner = CliRunner()
 
 class TestStartCommand:
     @patch("shellclaw.commands.start.is_gateway_running", return_value=True)
-    @patch("shellclaw.commands.start.start_sandbox", return_value=True)
-    def test_starts_sandbox(self, mock_start: MagicMock, mock_gw: MagicMock) -> None:
+    @patch("shellclaw.commands.start.create_sandbox", return_value=True)
+    def test_starts_sandbox(self, mock_create: MagicMock, mock_gw: MagicMock) -> None:
         from shellclaw.main import app
 
         result = runner.invoke(app, ["start"])
 
         assert result.exit_code == 0
-        mock_start.assert_called_once()
+        mock_create.assert_called_once()
 
     @patch("shellclaw.commands.start.is_gateway_running", return_value=False)
     @patch("shellclaw.commands.start.start_gateway", return_value=True)
-    @patch("shellclaw.commands.start.start_sandbox", return_value=True)
+    @patch("shellclaw.commands.start.create_sandbox", return_value=True)
     def test_auto_starts_gateway(
         self, mock_sandbox: MagicMock, mock_gw_start: MagicMock, mock_gw_check: MagicMock
     ) -> None:
@@ -32,8 +32,8 @@ class TestStartCommand:
         mock_gw_start.assert_called_once()
 
     @patch("shellclaw.commands.start.is_gateway_running", return_value=True)
-    @patch("shellclaw.commands.start.start_sandbox", return_value=False)
-    def test_fails_when_sandbox_fails(self, mock_start: MagicMock, mock_gw: MagicMock) -> None:
+    @patch("shellclaw.commands.start.create_sandbox", return_value=False)
+    def test_fails_when_sandbox_fails(self, mock_create: MagicMock, mock_gw: MagicMock) -> None:
         from shellclaw.main import app
 
         result = runner.invoke(app, ["start"])
@@ -42,19 +42,19 @@ class TestStartCommand:
 
 
 class TestStopCommand:
-    @patch("shellclaw.commands.stop.stop_sandbox", return_value=True)
-    def test_stops_sandbox(self, mock_stop: MagicMock) -> None:
+    @patch("shellclaw.commands.stop.delete_sandbox", return_value=True)
+    def test_stops_sandbox(self, mock_delete: MagicMock) -> None:
         from shellclaw.main import app
 
         result = runner.invoke(app, ["stop"])
 
         assert result.exit_code == 0
-        mock_stop.assert_called_once()
+        mock_delete.assert_called_once()
 
-    @patch("shellclaw.commands.stop.stop_sandbox", return_value=True)
+    @patch("shellclaw.commands.stop.delete_sandbox", return_value=True)
     @patch("shellclaw.commands.stop.stop_gateway", return_value=True)
     def test_stops_gateway_when_flag_set(
-        self, mock_gw_stop: MagicMock, mock_stop: MagicMock
+        self, mock_gw_stop: MagicMock, mock_delete: MagicMock
     ) -> None:
         from shellclaw.main import app
 

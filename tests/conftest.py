@@ -44,11 +44,14 @@ def sample_policy(tmp_path: Path) -> Path:
     """Create a sample policy YAML file."""
     policy = tmp_path / "policy.yaml"
     policy.write_text(
-        "filesystem:\n"
-        "  - path: /sandbox\n"
-        "    permission: read_write\n"
-        "network:\n"
-        "  - endpoint: inference.local\n"
-        "    action: allow\n"
+        "version: 1\n"
+        "filesystem_policy:\n"
+        "  read_write:\n"
+        "    - /sandbox\n"
+        "network_policies:\n"
+        "  inference:\n"
+        "    endpoints:\n"
+        "      - host: inference.local\n"
+        "        access: allow\n"
     )
     return policy

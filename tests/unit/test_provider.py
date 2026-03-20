@@ -19,19 +19,49 @@ class TestCreateProvider:
     def test_calls_provider_create(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.provider import create_provider
 
-        result = create_provider("anthropic", {"ANTHROPIC_API_KEY": "sk-test"})
+        result = create_provider(
+            "anthropic", "anthropic",
+            credentials={"ANTHROPIC_API_KEY": "sk-test"},
+        )
 
         assert result is True
         args = mock_run_openshell.call_args[0][0]
         assert "provider" in args
         assert "create" in args
+        assert "--type" in args
+        assert "anthropic" in args
+        assert "--credential" in args
+
+    def test_includes_config_flags(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.provider import create_provider
+
+        result = create_provider(
+            "litellm", "openai",
+            credentials={"OPENAI_API_KEY": "sk-test"},
+            config={"OPENAI_BASE_URL": "http://localhost:4000/v1"},
+        )
+
+        assert result is True
+        args = mock_run_openshell.call_args[0][0]
+        assert "--config" in args
+        config_idx = args.index("--config")
+        assert args[config_idx + 1] == "OPENAI_BASE_URL=http://localhost:4000/v1"
+
+    def test_supports_from_existing(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.provider import create_provider
+
+        result = create_provider("openai", "openai", from_existing=True)
+
+        assert result is True
+        args = mock_run_openshell.call_args[0][0]
+        assert "--from-existing" in args
 
     def test_returns_false_on_failure(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.provider import create_provider
 
         mock_run_openshell.side_effect = subprocess.CalledProcessError(1, "openshell")
 
-        result = create_provider("test", {"KEY": "val"})
+        result = create_provider("test", "generic", credentials={"KEY": "val"})
         assert result is False
 
 
@@ -82,11 +112,37 @@ class TestListProviders:
         from shellclaw.core.provider import list_providers
 
         mock_run_openshell.return_value = subprocess.CompletedProcess(
-            args=[], returncode=0, stdout="anthropic\nopenai\n", stderr=""
+            args=[], returncode=0,
+            stdout="NAME     TYPE    CREDENTIAL_KEYS  CONFIG_KEYS\nlitellm  openai  0                1\n",
+            stderr=""
         )
 
         result = list_providers()
         assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0].name == "litellm"
+        assert result[0].provider_type == "openai"
+
+    def test_returns_empty_on_failure(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.provider import list_providers
+
+        mock_run_openshell.side_effect = subprocess.CalledProcessError(1, "openshell")
+
+        result = list_providers()
+        assert result == []
+
+    def test_handles_ansi_header(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.provider import list_providers
+
+        mock_run_openshell.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout="\x1b[1mNAME   \x1b[0m  \x1b[1mTYPE  \x1b[0m\nlitellm  openai\n",
+            stderr=""
+        )
+
+        result = list_providers()
+        assert len(result) == 1
+        assert result[0].name == "litellm"
 
 
 class TestDeleteProvider:

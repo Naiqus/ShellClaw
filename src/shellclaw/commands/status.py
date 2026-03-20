@@ -14,8 +14,8 @@ def status() -> None:
     gw_state = "[green]running[/green]" if gw.running else "[red]stopped[/red]"
     gw_table = create_status_table(
         "Gateway",
-        ["Status", "Host", "Uptime"],
-        [[gw_state, gw.host, gw.uptime]],
+        ["Status", "Host", "Version"],
+        [[gw_state, gw.host, gw.version]],
     )
     console.print(gw_table)
 
@@ -33,8 +33,8 @@ def status() -> None:
     if inf:
         inf_table = create_status_table(
             "Inference",
-            ["Provider", "Model", "URL"],
-            [[inf.provider, inf.model, inf.url]],
+            ["Provider", "Model", "Version"],
+            [[inf.provider, inf.model, inf.version]],
         )
         console.print(inf_table)
     else:

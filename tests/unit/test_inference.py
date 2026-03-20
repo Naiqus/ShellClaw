@@ -19,7 +19,7 @@ class TestSetInference:
     def test_calls_inference_set(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.inference import set_inference
 
-        result = set_inference("ollama", "llama3", "http://localhost:11434")
+        result = set_inference("ollama", "llama3")
 
         assert result is True
         mock_run_openshell.assert_called_once()
@@ -29,41 +29,29 @@ class TestSetInference:
     def test_includes_provider_and_model(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.inference import set_inference
 
-        set_inference("anthropic", "claude-sonnet", "https://api.anthropic.com")
+        set_inference("anthropic", "claude-sonnet")
 
         args = mock_run_openshell.call_args[0][0]
         assert "--provider" in args
         assert "anthropic" in args
         assert "--model" in args
         assert "claude-sonnet" in args
-        assert "--url" in args
 
-    def test_rejects_unsupported_provider(self, mock_run_openshell: MagicMock) -> None:
+    def test_accepts_any_provider_name(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.inference import set_inference
 
-        with pytest.raises(ValueError, match="Unsupported provider"):
-            set_inference("unsupported-provider", "model", "http://localhost")
+        result = set_inference("my-custom-provider", "model")
 
-        mock_run_openshell.assert_not_called()
+        assert result is True
+        mock_run_openshell.assert_called_once()
 
     def test_returns_false_on_failure(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.inference import set_inference
 
         mock_run_openshell.side_effect = subprocess.CalledProcessError(1, "openshell")
 
-        result = set_inference("ollama", "llama3", "http://localhost:11434")
+        result = set_inference("ollama", "llama3")
         assert result is False
-
-
-class TestSupportedProviders:
-    def test_contains_expected_providers(self) -> None:
-        from shellclaw.core.inference import SUPPORTED_PROVIDERS
-
-        assert "ollama" in SUPPORTED_PROVIDERS
-        assert "openai" in SUPPORTED_PROVIDERS
-        assert "anthropic" in SUPPORTED_PROVIDERS
-        assert "apple-metal" in SUPPORTED_PROVIDERS
-        assert "custom" in SUPPORTED_PROVIDERS
 
 
 class TestGetInferenceConfig:
@@ -72,12 +60,20 @@ class TestGetInferenceConfig:
 
         mock_run_openshell.return_value = subprocess.CompletedProcess(
             args=[], returncode=0,
-            stdout="provider: ollama\nmodel: llama3\nurl: http://localhost:11434",
+            stdout=(
+                "Gateway inference:\n"
+                "  Provider: litellm\n"
+                "  Model: kimi-k2.5-coding\n"
+                "  Version: 1\n"
+            ),
             stderr=""
         )
 
         config = get_inference_config()
         assert isinstance(config, InferenceConfig)
+        assert config.provider == "litellm"
+        assert config.model == "kimi-k2.5-coding"
+        assert config.version == "1"
 
     def test_returns_none_on_failure(self, mock_run_openshell: MagicMock) -> None:
         from shellclaw.core.inference import get_inference_config
@@ -86,3 +82,34 @@ class TestGetInferenceConfig:
 
         config = get_inference_config()
         assert config is None
+
+    def test_returns_none_when_not_configured(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.inference import get_inference_config
+
+        mock_run_openshell.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout="System inference:\n  Not configured\n",
+            stderr=""
+        )
+
+        config = get_inference_config()
+        assert config is None
+
+    def test_handles_ansi_codes(self, mock_run_openshell: MagicMock) -> None:
+        from shellclaw.core.inference import get_inference_config
+
+        mock_run_openshell.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0,
+            stdout=(
+                "\x1b[1m\x1b[36mGateway inference:\x1b[39m\x1b[0m\n"
+                "  \x1b[2mProvider:\x1b[0m litellm\n"
+                "  \x1b[2mModel:\x1b[0m kimi-k2.5-coding\n"
+                "  \x1b[2mVersion:\x1b[0m 1\n"
+            ),
+            stderr=""
+        )
+
+        config = get_inference_config()
+        assert config is not None
+        assert config.provider == "litellm"
+        assert config.model == "kimi-k2.5-coding"

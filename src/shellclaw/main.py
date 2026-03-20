@@ -39,3 +39,6 @@ app.command()(stop)
 app.command()(connect)
 app.command()(status)
 app.command()(migrate)
+
+if __name__ == "__main__":
+    app()

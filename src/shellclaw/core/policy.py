@@ -7,7 +7,7 @@ import yaml
 
 from shellclaw.core.shell import run_openshell
 
-REQUIRED_SECTIONS = ("filesystem", "network")
+REQUIRED_SECTIONS = ("filesystem_policy", "network_policies")
 
 
 def load_policy(path: Path) -> dict:
@@ -36,7 +36,7 @@ def validate_policy(policy: dict) -> list[str]:
 
 def apply_policy(sandbox_name: str, policy_path: Path) -> bool:
     try:
-        run_openshell(["policy", "set", str(policy_path), "--sandbox", sandbox_name])
+        run_openshell(["policy", "set", sandbox_name, "--policy", str(policy_path)])
         return True
     except subprocess.CalledProcessError:
         return False

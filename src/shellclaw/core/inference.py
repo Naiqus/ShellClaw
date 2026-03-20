@@ -3,36 +3,23 @@ from __future__ import annotations
 import subprocess
 from dataclasses import dataclass
 
+from shellclaw.core.gateway import _parse_kv_lines
 from shellclaw.core.shell import run_openshell
-
-SUPPORTED_PROVIDERS: frozenset[str] = frozenset({
-    "ollama",
-    "openai",
-    "anthropic",
-    "apple-metal",
-    "custom",
-})
 
 
 @dataclass(frozen=True)
 class InferenceConfig:
     provider: str = ""
     model: str = ""
-    url: str = ""
+    version: str = ""
 
 
-def set_inference(provider: str, model: str, url: str) -> bool:
-    if provider not in SUPPORTED_PROVIDERS:
-        raise ValueError(
-            f"Unsupported provider: '{provider}'. "
-            f"Supported: {', '.join(sorted(SUPPORTED_PROVIDERS))}"
-        )
+def set_inference(provider: str, model: str) -> bool:
     try:
         run_openshell([
             "inference", "set",
             "--provider", provider,
             "--model", model,
-            "--url", url,
         ])
         return True
     except subprocess.CalledProcessError:
@@ -42,16 +29,15 @@ def set_inference(provider: str, model: str, url: str) -> bool:
 def get_inference_config() -> InferenceConfig | None:
     try:
         result = run_openshell(["inference", "get"], check=True)
-        lines = result.stdout.strip().splitlines()
-        values: dict[str, str] = {}
-        for line in lines:
-            if ":" in line:
-                key, _, value = line.partition(":")
-                values[key.strip()] = value.strip()
+        values = _parse_kv_lines(result.stdout)
+        provider = values.get("provider", "")
+        model = values.get("model", "")
+        if not provider and not model:
+            return None
         return InferenceConfig(
-            provider=values.get("provider", ""),
-            model=values.get("model", ""),
-            url=values.get("url", ""),
+            provider=provider,
+            model=model,
+            version=values.get("version", ""),
         )
     except subprocess.CalledProcessError:
         return None

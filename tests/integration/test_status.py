@@ -22,7 +22,7 @@ class TestStatusCommand:
         from shellclaw.core.gateway import GatewayStatus
         from shellclaw.main import app
 
-        mock_gateway.return_value = GatewayStatus(running=True, host="localhost", uptime="120s")
+        mock_gateway.return_value = GatewayStatus(running=True, host="https://127.0.0.1:8080", version="0.0.11")
 
         result = runner.invoke(app, ["status"])
 
